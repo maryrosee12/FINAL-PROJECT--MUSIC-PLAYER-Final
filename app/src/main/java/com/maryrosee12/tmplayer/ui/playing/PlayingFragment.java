@@ -1,15 +1,11 @@
-package com.adepge.tmplayer.ui.playing;
+package com.example.musicplayer.ui.playing;
 
-import android.app.ActivityManager;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -23,26 +19,17 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.adepge.tmplayer.MainActivity;
-import com.adepge.tmplayer.MediaPlaybackService;
-import com.adepge.tmplayer.R;
-import com.adepge.tmplayer.ui.library.Song;
+import com.example.musicplayer.MainActivity;
+import com.example.musicplayer.MediaPlaybackService;
+import com.example.musicplayer.R;
+import com.example.musicplayer.ui.library.Song;
 import com.bumptech.glide.Glide;
 
-/**
- * This Fragment displays the NowPlaying activity - which shows
- * the song currently playing and some media controls
- *
- * @version 1.0
- * @author Adam George
- */
 public class PlayingFragment extends Fragment {
 
     private MediaPlaybackService mediaPlaybackService;
 
-    // View resource fields
     private TextView songTitle;
     private TextView songArtist;
     private ImageButton playButton;
@@ -52,25 +39,16 @@ public class PlayingFragment extends Fragment {
     private ImageButton shuffleButton;
     private ImageView albumCover;
 
-    // Boolean switches (service connection & media controls)
     private boolean isBound = false;
 
     private boolean isRepeat = false;
     private boolean isShuffle = false;
 
-    // For PlayingFragment seek bar
     private SeekBar seekBar;
     private Handler handler = new Handler();
 
     private Runnable seekBarUpdater;
 
-    /**
-     * When the Fragment is called to be visible, does the following:
-     * <ul>
-     *     <li>Updates the seek bar</li>
-     *     <li>Binds the {@link MediaPlaybackService}</li>
-     * </ul>
-     */
     @Override
     public void onStart() {
         super.onStart();
@@ -79,23 +57,13 @@ public class PlayingFragment extends Fragment {
         getActivity().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
         if (mediaPlaybackService != null) {
             if (mediaPlaybackService.isPlaying()) {
-                playButton.setBackgroundResource(R.drawable.media_pause); // Set pause icon
+                playButton.setBackgroundResource(R.drawable.media_pause);
             } else {
-                playButton.setBackgroundResource(R.drawable.media_play); // Set play icon
+                playButton.setBackgroundResource(R.drawable.media_play);
             }
         }
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
-            /**
-             * Method to seek to different position in song when user moves the seek bar
-             *
-             * @param seekBar The SeekBar whose progress has changed
-             * @param progress The current progress level. This will be in the range min..max where min
-             *                 and max were set by {@link ProgressBar#setMin(int)} and
-             *                 {@link ProgressBar#setMax(int)}, respectively. (The default values for
-             *                 min is 0 and max is 100.)
-             * @param fromUser True if the progress change was initiated by the user.
-             */
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
@@ -106,54 +74,27 @@ public class PlayingFragment extends Fragment {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                // Do nothing (no intended implementation needed)
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                // Do nothing (no intended implementation needed)
             }
         });
     }
 
-    /**
-     * Method to create PlayingFragment View
-     *
-     * @param inflater The LayoutInflater object that can be used to inflate
-     * any views in the fragment,
-     * @param container If non-null, this is the parent view that the fragment's
-     * UI should be attached to.  The fragment should not add the view itself,
-     * but this can be used to generate the LayoutParams of the view.
-     * @param savedInstanceState If non-null, this fragment is being re-constructed
-     * from a previous saved state as given here.
-     *
-     * @return PlayingFragment View
-     */
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_playing, container, false);
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
-        /**
-         * Binds the {@link MediaPlaybackService} to the PlayingFragment
-         *
-         * @param name The concrete component name of the service that has
-         * been connected.
-         * @param service The IBinder of the Service's communication channel,
-         * which you can now make calls on.
-         */
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d("serviceConnection", "Service has successfully connected");
             MediaPlaybackService.LocalBinder binder = (MediaPlaybackService.LocalBinder) service;
             mediaPlaybackService = binder.getService();
             mediaPlaybackService.setOnSongChangedListener(new MediaPlaybackService.OnSongChangedListener() {
-                /**
-                 * Method which updates the song details (album art, song title, artist) in the fragment
-                 * when the song changes
-                 * @param song
-                 */
                 @Override
                 public void onSongChanged(Song song) {
                     Song currentSong = mediaPlaybackService.getCurrentSong();
@@ -165,25 +106,22 @@ public class PlayingFragment extends Fragment {
                         if (albumArtUri != null) {
                             Glide.with(getActivity())
                                     .load(albumArtUri)
-                                    .error(R.drawable.album_empty) // Fallback icon when no album art found
+                                    .error(R.drawable.album_empty)
                                     .into(albumCover);
                         }
                     }
-                    // Set maximum progress as 100%
                     seekBar.setMax(100);
                     updateSeekBar();
                 }
             });
             isBound = true;
 
-            // Changes play to pause button (and vice versa) depending on whether song is playing
             if (mediaPlaybackService.isPlaying()) {
-                playButton.setBackgroundResource(R.drawable.media_pause); // Set pause icon
+                playButton.setBackgroundResource(R.drawable.media_pause);
             } else {
-                playButton.setBackgroundResource(R.drawable.media_play); // Set play icon
+                playButton.setBackgroundResource(R.drawable.media_play);
             }
 
-            // Method is called upon the first song being played with the MediaPlaybackService
             Song currentSong = mediaPlaybackService.getCurrentSong();
             if (currentSong != null) {
                 songTitle.setText(currentSong.getTitle());
@@ -196,7 +134,6 @@ public class PlayingFragment extends Fragment {
                             .error(R.drawable.album_empty)
                             .into(albumCover);
                 } else {
-                    // Set a default image or hide the ImageView if there's no album cover
                     albumCover.setImageResource(R.drawable.album_empty);
                 }
             }
@@ -207,19 +144,10 @@ public class PlayingFragment extends Fragment {
             isBound = false;
         }
     };
-
-    /**
-     * Method to register all the relevant listeners to the buttons / seekbar in View
-     *
-     * @param view The View returned by {@link #onCreateView(LayoutInflater, ViewGroup, Bundle)}.
-     * @param savedInstanceState If non-null, this fragment is being re-constructed
-     * from a previous saved state as given here.
-     */
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Initialise view resources
         albumCover = view.findViewById(R.id.album_cover);
         songTitle = view.findViewById(R.id.song_title);
         songArtist = view.findViewById(R.id.song_album);
@@ -233,7 +161,6 @@ public class PlayingFragment extends Fragment {
         Intent intent = new Intent(getActivity(), MediaPlaybackService.class);
         getActivity().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
-        // Sends the pause/play Intent to MediaPlaybackService (play/pause button)
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -249,7 +176,6 @@ public class PlayingFragment extends Fragment {
             }
         });
 
-        // Sends the skip to next song Intent to MediaPlaybackService
         skipForward.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -259,7 +185,6 @@ public class PlayingFragment extends Fragment {
             }
         });
 
-        // Sends the skip to previous song Intent to MediaPlaybackService
         skipBackward.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -269,7 +194,6 @@ public class PlayingFragment extends Fragment {
             }
         });
 
-        // Sets the song to repeat when repeat button is clicked
         repeatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -277,7 +201,7 @@ public class PlayingFragment extends Fragment {
                     isRepeat = !isRepeat;
                     mediaPlaybackService.setRepeat(isRepeat);
                     if (isRepeat) {
-                        ColorStateList colorStateList = ColorStateList.valueOf(Color.parseColor("#34C95C")); // Change to your desired color
+                        ColorStateList colorStateList = ColorStateList.valueOf(Color.parseColor("#34C95C"));
                         repeatButton.setBackgroundTintList(colorStateList);
                     } else {
                         ColorStateList inactiveStateList = ColorStateList.valueOf(Color.GRAY);
@@ -287,7 +211,7 @@ public class PlayingFragment extends Fragment {
             }
         });
 
-        // When shuffle button is clicked, songs do not play in their listed order / play in random order
+
         shuffleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -295,7 +219,7 @@ public class PlayingFragment extends Fragment {
                     isShuffle = !isShuffle;
                     mediaPlaybackService.setShuffle(isShuffle);
                     if (isShuffle) {
-                        ColorStateList colorStateList = ColorStateList.valueOf(Color.parseColor("#34C95C")); // Change to your desired color
+                        ColorStateList colorStateList = ColorStateList.valueOf(Color.parseColor("#34C95C"));
                         shuffleButton.setBackgroundTintList(colorStateList);
                     } else {
                         ColorStateList inactiveStateList = ColorStateList.valueOf(Color.GRAY);
@@ -306,10 +230,7 @@ public class PlayingFragment extends Fragment {
         });
     }
 
-    /**
-     * Method to unbind {@link MediaPlaybackService} and stop seek bar
-     * from updating when the Fragment is no longer visible
-     */
+
     @Override
     public void onStop() {
         super.onStop();
@@ -321,9 +242,7 @@ public class PlayingFragment extends Fragment {
         }
     }
 
-    /**
-     * Detaches Fragment from the {@link MainActivity}
-     */
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -334,14 +253,7 @@ public class PlayingFragment extends Fragment {
         }
     }
 
-    /**
-     * Method to update the seekbar from (1-100%) depending on the progress
-     * of the song relative to its entire duration (updated every second)
-     *
-     * <p>Additional info: Longer songs will have a slower seek bar
-     * and the seekbar movement will skip a larger proportion of time
-     * compared to a shorter song</p>
-     */
+
     private void updateSeekBar() {
         if (mediaPlaybackService != null) {
             int progress = (int) (((float) mediaPlaybackService.getCurrentPosition() / mediaPlaybackService.getSongDuration()) * 100);
@@ -358,10 +270,7 @@ public class PlayingFragment extends Fragment {
         }
     }
 
-    /**
-     * Method which calls the seek bar updater upon
-     * the Fragment becoming visible
-     */
+
     private void startSeekBarUpdater() {
         stopSeekBarUpdater();
         seekBarUpdater = new Runnable() {
@@ -374,9 +283,6 @@ public class PlayingFragment extends Fragment {
         handler.postDelayed(seekBarUpdater, 1000);
     }
 
-    /**
-     * Detaches the Runnable instance of seek bar updater
-     */
     private void stopSeekBarUpdater() {
         if (seekBarUpdater != null) {
             handler.removeCallbacks(seekBarUpdater);
